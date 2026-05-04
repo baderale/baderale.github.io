@@ -1,7 +1,749 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bader Ale | Mechanical × AI/Data Engineer</title>
+<meta name="description" content="bader_ale — Mechanical × AI/Data Engineer. Bridging physical systems and intelligent data with Python, ML, and modern data stacks." />
+
+<!-- Fonts: JetBrains Mono for terminal feel, Space Grotesk would be too common; using IBM Plex Mono + Fraunces for a refined-but-technical pairing -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0a0e0d;
+    --bg-elev: #111817;
+    --bg-card: #0f1514;
+    --border: #1f2a28;
+    --border-bright: #2d3d3a;
+    --text: #d4e3df;
+    --text-dim: #6b8278;
+    --text-muted: #4a5d57;
+    --accent: #5eead4;        /* primary teal */
+    --accent-dim: #2dd4bf;
+    --accent-glow: rgba(94, 234, 212, 0.15);
+    --warning: #fbbf24;
+    --comment: #4a5d57;
+    --string: #a7f3d0;
+    --keyword: #f0abfc;
+    --grid: rgba(94, 234, 212, 0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at top right, var(--accent-glow), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ========== NAV ========== */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 14, 13, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .nav-logo {
+    color: var(--accent);
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .nav-logo::before { content: '~/'; color: var(--text-dim); }
+  .nav-links { display: flex; gap: 28px; }
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+  }
+  .nav-links a::before { content: '$ '; color: var(--accent); opacity: 0.5; }
+  .nav-links a:hover { color: var(--accent); }
+
+  /* ========== HERO ========== */
+  .hero {
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 60px;
+    align-items: center;
+  }
+  .hero-tag {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .hero-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+  }
+  .hero-title .accent {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .hero-subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 32px;
+  }
+  .hero-subtitle .keyword { color: var(--keyword); }
+  .hero-subtitle .string { color: var(--string); }
+
+  .hero-bio {
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 540px;
+    margin-bottom: 32px;
+    border-left: 2px solid var(--accent);
+    padding-left: 20px;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .meta-item {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .meta-item strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .hero-avatar {
+    position: relative;
+  }
+  .avatar-wrap {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    margin: 0 auto;
+  }
+  .avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+    filter: grayscale(20%) contrast(1.05);
+    border: 1px solid var(--border-bright);
+  }
+  .avatar-wrap::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    opacity: 0.3;
+  }
+  .avatar-wrap::after {
+    content: 'IMG_001.png';
+    position: absolute;
+    bottom: -24px;
+    right: 0;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .avatar-corners {
+    position: absolute;
+    inset: -16px;
+    pointer-events: none;
+  }
+  .avatar-corners span {
+    position: absolute;
+    width: 12px; height: 12px;
+    border: 1px solid var(--accent);
+  }
+  .avatar-corners span:nth-child(1) { top: 0; left: 0; border-right: 0; border-bottom: 0; }
+  .avatar-corners span:nth-child(2) { top: 0; right: 0; border-left: 0; border-bottom: 0; }
+  .avatar-corners span:nth-child(3) { bottom: 0; left: 0; border-right: 0; border-top: 0; }
+  .avatar-corners span:nth-child(4) { bottom: 0; right: 0; border-left: 0; border-top: 0; }
+
+  /* ========== SECTIONS ========== */
+  section { padding: 80px 0; border-bottom: 1px solid var(--border); }
+
+  .section-label {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-bottom: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .section-label::before { content: '// '; color: var(--accent); }
+
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: clamp(32px, 4vw, 48px);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .section-title::before {
+    content: '> ';
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7em;
+    font-weight: 500;
+  }
+  .section-meta {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 48px;
+  }
+  .section-meta::before { content: '/** '; }
+  .section-meta::after { content: ' */'; }
+
+  /* ========== SKILLS ========== */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .skill-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .skill-card::before {
+    content: attr(data-num);
+    position: absolute;
+    top: 16px; right: 16px;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .skill-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px var(--accent-glow);
+  }
+  .skill-card:hover::before { color: var(--accent); }
+  .skill-icon {
+    font-size: 24px;
+    margin-bottom: 12px;
+    color: var(--accent);
+  }
+  .skill-card h3 {
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .skill-card h3::before { content: '#'; color: var(--accent); margin-right: 6px; }
+  .skill-card p {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .skill-tags {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .skill-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-bright);
+    color: var(--text-dim);
+    border-radius: 2px;
+  }
+
+  /* ========== EXPERIENCE / TIMELINE ========== */
+  .timeline {
+    border-left: 1px solid var(--border-bright);
+    padding-left: 32px;
+    margin-left: 8px;
+  }
+  .timeline-item {
+    position: relative;
+    padding-bottom: 40px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -38px;
+    top: 6px;
+    width: 12px; height: 12px;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+  }
+  .timeline-item:hover::before {
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+  .timeline-date {
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .timeline-title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .timeline-org {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .timeline-desc {
+    font-size: 13px;
+    color: var(--text-dim);
+    max-width: 600px;
+  }
+
+  /* ========== STACK GRID ========== */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .stack-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 16px 12px;
+    text-align: center;
+    transition: all 0.2s;
+    font-size: 12px;
+  }
+  .stack-item:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .stack-cat {
+    color: var(--text-muted);
+    font-size: 10px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* ========== CONTACT ========== */
+  .contact-block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 40px;
+    border-radius: 4px;
+    position: relative;
+  }
+  .contact-block::before {
+    content: '● ● ●';
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    color: var(--text-muted);
+    font-size: 8px;
+    letter-spacing: 4px;
+  }
+  .contact-prompt {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 24px 0 24px;
+  }
+  .contact-prompt .accent { color: var(--accent); }
+  .contact-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .contact-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.2s;
+    background: var(--bg-elev);
+  }
+  .contact-link:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateX(2px);
+  }
+  .contact-link::before {
+    content: '$';
+    color: var(--accent);
+  }
+
+  /* ========== FOOTER ========== */
+  footer {
+    padding: 32px 0;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  footer .accent { color: var(--accent); }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 768px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .hero-avatar { order: -1; }
+    .avatar-wrap { width: 180px; height: 180px; }
+    .nav-links { gap: 16px; }
+    .nav-links a { font-size: 11px; }
+  }
+
+  /* Reveal animation */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: reveal 0.8s ease-out forwards;
+  }
+  .reveal-1 { animation-delay: 0.1s; }
+  .reveal-2 { animation-delay: 0.25s; }
+  .reveal-3 { animation-delay: 0.4s; }
+  .reveal-4 { animation-delay: 0.55s; }
+  @keyframes reveal {
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
 <body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">Bader Ale</a>
+    <div class="nav-links">
+      <a href="#about">about</a>
+      <a href="#skills">skills</a>
+      <a href="#stack">stack</a>
+      <a href="#experience">experience</a>
+      <a href="#contact">contact</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ========== HERO ========== -->
+  <section class="hero">
+    <div class="hero-grid">
+      <div>
+        <!--<div class="hero-tag reveal reveal-1">available_for_opportunities</div>-->
+        <h1 class="hero-title reveal reveal-1">
+          Bader<span class="accent">_</span>Ale
+        </h1>
+        <p class="hero-subtitle reveal reveal-2">
+          <span class="keyword">const</span> role = <span class="string">"Mechanical × AI/Data Engineer"</span>;
+        </p>
+        <p class="hero-bio reveal reveal-3">
+          Bridging physical systems and intelligent data with Python, ML,
+          and modern data stacks to turn complexity into clarity.
+        </p>
+        <div class="hero-meta reveal reveal-4">
+          <div class="meta-item"><strong>~/</strong> Southwest Florida</div>
+          <div class="meta-item"><strong>status:</strong> building</div>
+          <div class="meta-item"><strong>focus:</strong> ML × infrastructure</div>
+        </div>
+      </div>
+      <div class="hero-avatar reveal reveal-2">
+        <div class="avatar-wrap">
+          <div class="avatar-corners"><span></span><span></span><span></span><span></span></div>
+          <img src="assets/avatar.png" alt="bader_ale" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ABOUT / SKILLS ========== -->
+  <section id="skills">
+    <div class="section-label">about.md</div>
+    <h2 class="section-title">core competencies</h2>
+    <p class="section-meta">Engineering disciplines and domains where I do my best work</p>
+
+    <div class="skills-grid">
+      <div class="skill-card" data-num="01">
+        <div class="skill-icon">⚙</div>
+        <h3>Mechanical Engineering</h3>
+        <p>Systems thinking, design intuition, and a foundation in how the physical world actually works.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">CAD</span>
+          <span class="skill-tag">Simulation</span>
+          <span class="skill-tag">Systems</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="02">
+        <div class="skill-icon">⌬</div>
+        <h3>Machine Learning</h3>
+        <p>Building, training, and deploying models that turn raw signals into reliable decisions.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">PyTorch</span>
+          <span class="skill-tag">scikit-learn</span>
+          <span class="skill-tag">MLOps</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="03">
+        <div class="skill-icon">⊟</div>
+        <h3>Data Engineering</h3>
+        <p>Pipelines, warehouses, and infrastructure that move data from messy to meaningful at scale.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">SQL</span>
+          <span class="skill-tag">ETL</span>
+          <span class="skill-tag">Pipelines</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="04">
+        <div class="skill-icon">◬</div>
+        <h3>Analytics & Modeling</h3>
+        <p>Statistical rigor and visualization to surface insight that drives action, not just dashboards.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">Pandas</span>
+          <span class="skill-tag">Statistics</span>
+          <span class="skill-tag">Viz</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="05">
+        <div class="skill-icon">⌸</div>
+        <h3>Cloud & DevOps</h3>
+        <p>Deploying, scaling, and automating with modern cloud-native tooling and IaC practices.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">AWS</span>
+          <span class="skill-tag">Docker</span>
+          <span class="skill-tag">CI/CD</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="06">
+        <div class="skill-icon">⌗</div>
+        <h3>Software Engineering</h3>
+        <p>Clean Python, version control, testing, and the engineering habits that keep systems healthy.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">Python</span>
+          <span class="skill-tag">Git</span>
+          <span class="skill-tag">Testing</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="07">
+        <div class="skill-icon">◈</div>
+        <h3>LLM & Agentic AI</h3>
+        <p>Shipping production agents, RAG pipelines, and MCP integrations on top of Claude, GPT, and tool-augmented LLM systems.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">Claude API</span>
+          <span class="skill-tag">RAG</span>
+          <span class="skill-tag">MCP</span>
+          <span class="skill-tag">Agents</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="08">
+        <div class="skill-icon">⎔</div>
+        <h3>Frontend & Web Apps</h3>
+        <p>Building internal tools and AI-powered interfaces that non-technical users actually want to use, with React and TypeScript.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">React</span>
+          <span class="skill-tag">TypeScript</span>
+          <span class="skill-tag">Next.js</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="09">
+        <div class="skill-icon">⌭</div>
+        <h3>API Integration</h3>
+        <p>Wiring SaaS and enterprise platforms together via REST, OAuth, and webhooks — turning siloed tools into automated pipelines.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">REST</span>
+          <span class="skill-tag">OAuth</span>
+          <span class="skill-tag">Webhooks</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="10">
+        <div class="skill-icon">⏣</div>
+        <h3>Rapid Prototyping</h3>
+        <p>Going from pain point to working tool fast with AI-native dev environments — Cursor, Claude Code, Lovable, Replit.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">Cursor</span>
+          <span class="skill-tag">Claude Code</span>
+          <span class="skill-tag">Lovable</span>
+        </div>
+      </div>
+      <div class="skill-card" data-num="11">
+        <div class="skill-icon">⌬</div>
+        <h3>Construction Tech</h3>
+        <p>Translating field and PM workflows into software — familiar with the platforms construction teams actually run on.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">Procore</span>
+          <span class="skill-tag">Autodesk</span>
+          <span class="skill-tag">M365</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== STACK ========== -->
+  <section id="stack">
+    <div class="section-label">stack.json</div>
+    <h2 class="section-title">tools of the trade</h2>
+    <p class="section-meta">Languages, frameworks, and platforms I reach for</p>
+
+    <div class="stack-grid">
+      <div class="stack-item"><span class="stack-cat">lang</span>Python</div>
+      <div class="stack-item"><span class="stack-cat">lang</span>SQL</div>
+      <div class="stack-item"><span class="stack-cat">lang</span>R</div>
+      <div class="stack-item"><span class="stack-cat">ml</span>PyTorch</div>
+      <div class="stack-item"><span class="stack-cat">ml</span>TensorFlow</div>
+      <div class="stack-item"><span class="stack-cat">ml</span>scikit-learn</div>
+      <div class="stack-item"><span class="stack-cat">data</span>Pandas</div>
+      <div class="stack-item"><span class="stack-cat">data</span>NumPy</div>
+      <div class="stack-item"><span class="stack-cat">data</span>Spark</div>
+      <div class="stack-item"><span class="stack-cat">cloud</span>AWS</div>
+      <div class="stack-item"><span class="stack-cat">cloud</span>Docker</div>
+      <div class="stack-item"><span class="stack-cat">cloud</span>Linux</div>
+      <div class="stack-item"><span class="stack-cat">tools</span>Git</div>
+      <div class="stack-item"><span class="stack-cat">tools</span>VS Code</div>
+      <div class="stack-item"><span class="stack-cat">tools</span>Jupyter</div>
+      <div class="stack-item"><span class="stack-cat">cad</span>SolidWorks</div>
+    </div>
+  </section>
+
+  <!-- ========== EXPERIENCE ========== -->
+  <section id="experience">
+    <div class="section-label">experience.log</div>
+    <h2 class="section-title">background</h2>
+    <p class="section-meta">A non-linear path from physical engineering to intelligent systems</p>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-date">2016 — present</div>
+        <div class="timeline-title">Independent Consultant / AI & Data Engineer</div>
+        <div class="timeline-org">// current focus</div>
+        <div class="timeline-desc">
+          Designing and shipping ML pipelines, training models, and building the data
+          infrastructure underneath them. Currently going deep on production-grade
+          deployment and modern data stacks.
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">2020 — 2024</div>
+        <div class="timeline-title">Mechanical Engineer</div>
+        <div class="timeline-org">// applied work</div>
+        <div class="timeline-desc">
+          Designed & optimized mechanical systems, improving energy efficiency by 20%
+          Conducted forensic engineering investigations & presented findings to stakeholders
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">2012 — 2015</div>
+        <div class="timeline-title">Early Mechanical Engineering</div>
+        <div class="timeline-org">// m2E · AMETEK (FAA contract) · GA Telesis · Bouygues</div>
+        <div class="timeline-desc">
+          Four roles across consulting, aerospace MRO, and civil works — designing and
+          optimizing mechanical systems, running forensic engineering investigations, and
+          building FAA-compliant and ergonomic maintenance tools. Cumulative wins:
+          ~20% energy-efficiency gains, 15% less aircraft downtime, 30% fewer workplace
+          injuries, and improved ventilation on a major tunnel project.
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-date">earlier</div>
+        <div class="timeline-title">B.S. Mechanical Engineering</div>
+        <div class="timeline-org">// foundations</div>
+        <div class="timeline-desc">
+          Trained as a mechanical engineer — thermodynamics, dynamics, materials,
+          and the systems-thinking habits that still anchor how I approach problems today.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CONTACT ========== -->
+  <section id="contact">
+    <div class="section-label">contact.sh</div>
+    <h2 class="section-title">get in touch</h2>
+    <p class="section-meta">Open to interesting problems, collaborations, and opportunities</p>
+
+    <div class="contact-block">
+      <p class="contact-prompt">
+        <span class="accent">$</span> echo <span style="color:var(--string)">"the best way to reach me is..."</span>
+      </p>
+      <div class="contact-links">
+        <a href="mailto:bader53.ale@gmail.com" class="contact-link">email</a>
+        <a href="https://github.com/baderale" class="contact-link" target="_blank" rel="noopener">github</a>
+        <a href="#" class="contact-link" target="_blank" rel="noopener">resume.pdf</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>
+      <span class="accent">©</span> 2026 bader_ale &nbsp;//&nbsp;
+      built with <span class="accent">∇</span> &nbsp;//&nbsp;
+      <span class="accent">v0.1.0</span>
+    </p>
+  </div>
+</footer>
+
 </body>
 </html>
