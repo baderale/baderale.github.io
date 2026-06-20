@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Coderi — Clinical-Coding Co-Pilot (medical text → ICD-10)</title>
+<meta name="description" content="Coderi is a clinical-coding co-pilot that de-identifies medical notes, retrieves candidate ICD-10 codes, and proposes a grounded code + rationale for a human coder to approve — self-hosted, never a third-party AI API." />
+
+<meta property="og:title" content="Coderi — Clinical-Coding Co-Pilot" />
+<meta property="og:description" content="Medical text → ICD-10. De-identify → extract → retrieve → map → verify → human review. Self-hosted, grounded, never a third-party AI API." />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0a0e0d;
+    --bg-elev: #111817;
+    --bg-card: #0f1514;
+    --border: #1f2a28;
+    --border-bright: #2d3d3a;
+    --text: #d4e3df;
+    --text-dim: #6b8278;
+    --text-muted: #4a5d57;
+    --accent: #5eead4;        /* primary teal */
+    --accent-dim: #2dd4bf;
+    --accent-glow: rgba(94, 234, 212, 0.15);
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --comment: #4a5d57;
+    --string: #a7f3d0;
+    --keyword: #f0abfc;
+    --grid: rgba(94, 234, 212, 0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at top right, var(--accent-glow), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ========== NAV ========== */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 14, 13, 0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .nav-logo { color: var(--accent); font-weight: 500; font-size: 14px; }
+  .nav-logo::before { content: '~/'; color: var(--text-dim); }
+  .nav-links { display: flex; gap: 24px; }
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    transition: color 0.2s;
+  }
+  .nav-links a::before { content: '$ '; color: var(--accent); opacity: 0.5; }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-cta { color: var(--accent) !important; }
+  .nav-cta::before { content: '↗ ' !important; opacity: 1 !important; }
+
+  /* ========== HERO ========== */
+  .hero {
+    padding: 72px 0 60px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  .hero-tag {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .hero-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+  .hero-title .accent { font-style: italic; color: var(--accent); font-weight: 500; }
+  .hero-subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 28px;
+  }
+  .hero-subtitle .keyword { color: var(--keyword); }
+  .hero-subtitle .string { color: var(--string); }
+
+  .hero-bio {
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 540px;
+    margin-bottom: 32px;
+    border-left: 2px solid var(--accent);
+    padding-left: 20px;
+  }
+  .hero-bio strong { color: var(--accent); font-weight: 500; }
+
+  .hero-meta { display: flex; gap: 24px; flex-wrap: wrap; }
+  .meta-item { font-size: 12px; color: var(--text-dim); }
+  .meta-item strong { color: var(--accent); font-weight: 500; }
+
+  /* ========== TERMINAL (hero right) ========== */
+  .terminal {
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+  }
+  .terminal-bar {
+    background: var(--bg-elev);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .terminal-bar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #f87171; } .dot.y { background: #fbbf24; } .dot.g { background: #34d399; }
+  .terminal-bar .title { margin-left: 8px; font-size: 11px; color: var(--text-muted); }
+  .terminal-body { padding: 18px; font-size: 12.5px; line-height: 1.9; }
+  .terminal-body .c { color: var(--comment); }
+  .terminal-body .k { color: var(--keyword); }
+  .terminal-body .s { color: var(--string); }
+  .terminal-body .a { color: var(--accent); }
+  .terminal-body .w { color: var(--warning); }
+  .terminal-body .pipe { color: var(--text-dim); }
+  .terminal-body .step { display: block; }
+  .terminal-body .gate {
+    color: var(--warning);
+    border-top: 1px dashed var(--border-bright);
+    margin-top: 8px; padding-top: 8px;
+    display: block;
+  }
+
+  /* ========== SECTIONS ========== */
+  section { padding: 76px 0; border-bottom: 1px solid var(--border); }
+  .section-label {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-bottom: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .section-label::before { content: '// '; color: var(--accent); }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: clamp(32px, 4vw, 48px);
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .section-title::before {
+    content: '> ';
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7em;
+    font-weight: 500;
+  }
+  .section-meta { color: var(--text-muted); font-size: 12px; margin-bottom: 48px; }
+  .section-meta::before { content: '/** '; }
+  .section-meta::after { content: ' */'; }
+
+  /* ========== PROBLEM STATS ========== */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    transition: all 0.3s;
+  }
+  .stat-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow); }
+  .stat-num {
+    font-family: 'Fraunces', serif;
+    font-size: 40px;
+    color: var(--accent);
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .stat-desc { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+  .problem-note { color: var(--text-dim); font-size: 14px; max-width: 720px; line-height: 1.7; }
+  .problem-note strong { color: var(--text); }
+
+  /* ========== PIPELINE STEPS ========== */
+  .pipe-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .pipe-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .pipe-card::before {
+    content: attr(data-num);
+    position: absolute;
+    top: 16px; right: 16px;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .pipe-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px var(--accent-glow); }
+  .pipe-card:hover::before { color: var(--accent); }
+  .pipe-icon { font-size: 22px; margin-bottom: 12px; color: var(--accent); }
+  .pipe-card h3 { font-size: 15px; font-weight: 500; margin-bottom: 8px; color: var(--text); }
+  .pipe-card h3 .stage { color: var(--accent); margin-right: 6px; }
+  .pipe-card p { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
+  .pipe-card .phi { font-size: 10px; color: var(--warning); margin-top: 12px; display: inline-block; }
+  .pipe-card .phi.clean { color: var(--accent-dim); }
+
+  /* ========== DIFFERENTIATORS ========== */
+  .diff-list { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .diff-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    padding: 20px 24px;
+    transition: all 0.2s;
+  }
+  .diff-item:hover { border-color: var(--accent); border-left-color: var(--accent); background: var(--bg-elev); }
+  .diff-item h3 { font-size: 14px; color: var(--text); margin-bottom: 6px; font-weight: 500; }
+  .diff-item h3::before { content: '✓ '; color: var(--accent); }
+  .diff-item p { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
+
+  /* ========== PLANES TABLE ========== */
+  .planes {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .planes th, .planes td { padding: 16px 18px; text-align: left; border-bottom: 1px solid var(--border); }
+  .planes th { color: var(--accent); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .planes tr:last-child td { border-bottom: none; }
+  .planes td:first-child { color: var(--text); font-weight: 500; }
+  .planes .yes { color: var(--warning); }
+  .planes .no { color: var(--accent-dim); }
+  .planes-note { font-size: 12.5px; color: var(--text-dim); margin-top: 20px; line-height: 1.7; max-width: 820px; }
+  .planes-note strong { color: var(--accent); font-weight: 500; }
+
+  /* ========== FLYWHEEL ========== */
+  .flywheel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .fly-step {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .fly-step:hover { border-color: var(--accent); box-shadow: 0 8px 32px var(--accent-glow); }
+  .fly-step .num {
+    font-family: 'Fraunces', serif;
+    font-size: 28px; color: var(--accent); font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .fly-step h3 { font-size: 14px; color: var(--text); margin-bottom: 8px; font-weight: 500; }
+  .fly-step p { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
+
+  /* ========== STACK ========== */
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .stack-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 16px 12px;
+    text-align: center;
+    transition: all 0.2s;
+    font-size: 12px;
+  }
+  .stack-item:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+  .stack-cat { color: var(--text-muted); font-size: 10px; display: block; margin-bottom: 4px; }
+
+  /* ========== STATUS / CTA ========== */
+  .status-block {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 40px;
+    border-radius: 4px;
+    position: relative;
+  }
+  .status-block::before {
+    content: '● ● ●';
+    position: absolute;
+    top: 12px; left: 16px;
+    color: var(--text-muted);
+    font-size: 8px;
+    letter-spacing: 4px;
+  }
+  .status-line { color: var(--text-dim); font-size: 13.5px; margin: 24px 0; line-height: 1.8; }
+  .status-line .a { color: var(--accent); }
+  .status-line .s { color: var(--string); }
+  .status-line .done { color: var(--accent-dim); }
+  .status-line .wip { color: var(--warning); }
+  .badges { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 28px; }
+  .badge {
+    font-size: 11px;
+    padding: 5px 12px;
+    border: 1px solid var(--border-bright);
+    border-radius: 2px;
+    color: var(--text-dim);
+    background: var(--bg-elev);
+  }
+  .badge.on { color: var(--accent-dim); border-color: var(--accent-dim); }
+  .cta-links { display: flex; flex-wrap: wrap; gap: 12px; }
+  .cta-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13px;
+    transition: all 0.2s;
+    background: var(--bg-elev);
+  }
+  .cta-link:hover { border-color: var(--accent); color: var(--accent); transform: translateX(2px); }
+  .cta-link::before { content: '$'; color: var(--accent); }
+  .cta-link.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 500; }
+  .cta-link.primary::before { color: var(--bg); }
+  .cta-link.primary:hover { background: var(--accent-dim); color: var(--bg); }
+
+  /* ========== COMPLIANCE ========== */
+  .compliance {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 760px;
+    border-left: 2px solid var(--border-bright);
+    padding-left: 18px;
+    margin-top: 24px;
+  }
+  .compliance strong { color: var(--warning); }
+
+  /* ========== FOOTER ========== */
+  footer { padding: 32px 0; text-align: center; color: var(--text-muted); font-size: 12px; }
+  footer .accent { color: var(--accent); }
+  footer a { color: var(--text-dim); text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+
+  /* ========== RESPONSIVE ========== */
+  @media (max-width: 860px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .terminal { order: 2; }
+    .diff-list { grid-template-columns: 1fr; }
+    .flywheel { grid-template-columns: 1fr; }
+    .nav-links { gap: 14px; }
+    .nav-links a { font-size: 11px; }
+    .planes { font-size: 12px; }
+    .planes th, .planes td { padding: 12px 10px; }
+  }
+
+  /* Reveal animation */
+  .reveal { opacity: 0; transform: translateY(20px); animation: reveal 0.8s ease-out forwards; }
+  .reveal-1 { animation-delay: 0.1s; }
+  .reveal-2 { animation-delay: 0.25s; }
+  .reveal-3 { animation-delay: 0.4s; }
+  .reveal-4 { animation-delay: 0.55s; }
+  @keyframes reveal { to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#top" class="nav-logo">coderi</a>
+    <div class="nav-links">
+      <a href="#problem">problem</a>
+      <a href="#pipeline">pipeline</a>
+      <a href="#different">different</a>
+      <a href="#flywheel">flywheel</a>
+      <a href="#status">status</a>
+      <a href="https://github.com/baderale/coderi" class="nav-cta" target="_blank" rel="noopener">repo</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container" id="top">
+
+  <!-- ========== HERO ========== -->
+  <section class="hero">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-tag reveal reveal-1">data_plane // never_leaves_the_clinic</div>
+        <h1 class="hero-title reveal reveal-1">
+          Coderi<span class="accent">.</span>
+        </h1>
+        <p class="hero-subtitle reveal reveal-2">
+          <span class="keyword">async fn</span> code(note) <span class="keyword">-&gt;</span> <span class="string">"ICD-10 + rationale + source sentence"</span>
+        </p>
+        <p class="hero-bio reveal reveal-3">
+          A clinical-coding co-pilot that sits between a clinic's EHR and its billing software.
+          It de-identifies notes, extracts clinical entities, retrieves candidate ICD-10 codes,
+          and proposes a <strong>grounded</strong> code for a human coder to approve — running on
+          the clinic's own isolated infrastructure, <strong>never a third-party AI API</strong>.
+        </p>
+        <div class="hero-meta reveal reveal-4">
+          <div class="meta-item"><strong>~/</strong> medical text → ICD-10</div>
+          <div class="meta-item"><strong>stage:</strong> M1 POC built · M2 underway</div>
+          <div class="meta-item"><strong>posture:</strong> HIPAA-aware · self-hosted</div>
+        </div>
+      </div>
+
+      <div class="terminal reveal reveal-2">
+        <div class="terminal-bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="title">coderi · data_plane.log</span>
+        </div>
+        <div class="terminal-body">
+          <span class="step"><span class="c"># note ingested via FHIR R4</span></span>
+          <span class="step"><span class="a">1</span> <span class="k">de-identify</span> <span class="pipe">→</span> 18 HIPAA IDs masked</span>
+          <span class="step"><span class="a">2</span> <span class="k">extract</span> <span class="pipe">→</span> NER <span class="c">// +source sentence</span></span>
+          <span class="step"><span class="a">3</span> <span class="k">retrieve</span> <span class="pipe">→</span> candidate ICD-10 <span class="c">// local DB</span></span>
+          <span class="step"><span class="a">4</span> <span class="k">map</span> <span class="pipe">→</span> <span class="s">E11.9</span> + rationale + conf</span>
+          <span class="step"><span class="a">5</span> <span class="k">verify</span> <span class="pipe">→</span> active? supported? <span class="w">not family-hx?</span></span>
+          <span class="gate">⏸ interrupt() → human review (approve / override)</span>
+          <span class="step"><span class="a">✓</span> approved → <span class="s">queued to billing</span></span>
+          <span class="step"><span class="c"># pair logged → training flywheel</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PROBLEM ========== -->
+  <section id="problem">
+    <div class="section-label">problem.md</div>
+    <h2 class="section-title">why coding bleeds revenue</h2>
+    <p class="section-meta">US outpatient practices lose real money to under-coding, denials, and manual labor</p>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-num">30–40%</div>
+        <div class="stat-desc">of claim denials stem from missing diagnoses, wrong modifiers, or mismatched procedures.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">$1.25–3.00</div>
+        <div class="stat-desc">per chart for manual coding — recurring labor cost that scales linearly with volume.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">#1</div>
+        <div class="stat-desc">incumbent error mode: confusing active conditions with historical / negated / family-history.</div>
+      </div>
+    </div>
+    <p class="problem-note">
+      Existing AI coders are <strong>over-built and over-priced</strong> for outpatient, struggle with
+      clinical context, and are <strong>black boxes</strong> that hurt audit &amp; appeals. Coderi is
+      scoped, explainable, and context-aware — built for the ambulatory practices the incumbents ignore.
+    </p>
+  </section>
+
+  <!-- ========== PIPELINE ========== -->
+  <section id="pipeline">
+    <div class="section-label">pipeline.graph</div>
+    <h2 class="section-title">the data plane</h2>
+    <p class="section-meta">de-identify → extract → retrieve → map → verify → route → human review → capture</p>
+
+    <div class="pipe-grid">
+      <div class="pipe-card" data-num="01">
+        <div class="pipe-icon">◈</div>
+        <h3><span class="stage">1</span>De-identify</h3>
+        <p>OpenMed strips all 18 HIPAA identifiers locally before anything else touches the note.</p>
+        <span class="phi">sees PHI · local only</span>
+      </div>
+      <div class="pipe-card" data-num="02">
+        <div class="pipe-icon">⌬</div>
+        <h3><span class="stage">2</span>Extract</h3>
+        <p>Clinical disease + medication NER, each entity tagged with the exact source sentence.</p>
+        <span class="phi">sees PHI · local only</span>
+      </div>
+      <div class="pipe-card" data-num="03">
+        <div class="pipe-icon">⊟</div>
+        <h3><span class="stage">3</span>Retrieve</h3>
+        <p>Semantic search over the full free ICD-10-CM set + a DSM-5 synonym layer in local SQLite — exact, recall-guarded.</p>
+        <span class="phi clean">de-identified</span>
+      </div>
+      <div class="pipe-card" data-num="04">
+        <div class="pipe-icon">◬</div>
+        <h3><span class="stage">4</span>Map</h3>
+        <p>The model <em>selects</em> one code from the candidates with a rationale + confidence — it can't invent a code.</p>
+        <span class="phi clean">grounded</span>
+      </div>
+      <div class="pipe-card" data-num="05">
+        <div class="pipe-icon">⚖</div>
+        <h3><span class="stage">5</span>Verify</h3>
+        <p>An auditor pass checks: active vs. historical / negated / family-hx? laterality &amp; acuity? supported by the sentence?</p>
+        <span class="phi clean">context-aware</span>
+      </div>
+      <div class="pipe-card" data-num="06">
+        <div class="pipe-icon">⏸</div>
+        <h3><span class="stage">6</span>Human review</h3>
+        <p>Low-confidence or non-active codes route to a coder via a durable LangGraph <code>interrupt()</code> gate.</p>
+        <span class="phi clean">co-pilot, not autonomous</span>
+      </div>
+      <div class="pipe-card" data-num="07">
+        <div class="pipe-icon">↻</div>
+        <h3><span class="stage">7</span>Capture</h3>
+        <p>Every approval/override becomes a labeled note↔code pair — the proprietary dataset (the moat).</p>
+        <span class="phi clean">flywheel</span>
+      </div>
+      <div class="pipe-card" data-num="08">
+        <div class="pipe-icon">▤</div>
+        <h3><span class="stage">8</span>Report</h3>
+        <p>A consolidated coding report (.md + .json): de-id audit · code · rationale · source · verdict · route.</p>
+        <span class="phi clean">audit-ready</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== DIFFERENT ========== -->
+  <section id="different">
+    <div class="section-label">moat.md</div>
+    <h2 class="section-title">why it's different</h2>
+    <p class="section-meta">vs. Fathom / CodaMetrix / Nym — the load-bearing premises, not preferences</p>
+
+    <div class="diff-list">
+      <div class="diff-item">
+        <h3>Self-owned model, never a third-party AI</h3>
+        <p>Patient data stays inside the clinic's isolated cloud tenant. No clinical text ever reaches an external LLM API.</p>
+      </div>
+      <div class="diff-item">
+        <h3>Context-aware</h3>
+        <p>Distinguishes active vs. historical, laterality &amp; acuity — the incumbents' #1 error mode, handled by a dedicated verify pass.</p>
+      </div>
+      <div class="diff-item">
+        <h3>Explainable</h3>
+        <p>Every code carries a rationale + the source sentence — audit and appeal gold, not a black box.</p>
+      </div>
+      <div class="diff-item">
+        <h3>Human-in-the-loop co-pilot</h3>
+        <p>The pipeline proposes; a human approves or overrides. Lower liability, easier trust, faster sales.</p>
+      </div>
+      <div class="diff-item">
+        <h3>Grounded, never hallucinated</h3>
+        <p>Codes come from retrieval over a local code DB. The model selects and justifies — it cannot fabricate a code.</p>
+      </div>
+      <div class="diff-item">
+        <h3>Outpatient-focused</h3>
+        <p>Priced and scoped for the ambulatory practices the over-built incumbents leave underserved.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ARCHITECTURE ========== -->
+  <section id="architecture">
+    <div class="section-label">architecture.json</div>
+    <h2 class="section-title">three planes</h2>
+    <p class="section-meta">PHI is walled into a per-tenant boundary; the shared cloud only ever sees de-identified text</p>
+
+    <table class="planes">
+      <thead>
+        <tr><th>Plane</th><th>Responsibility</th><th>Sees PHI?</th><th>Where it runs</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Data plane</td>
+          <td>de-identify → extract → retrieve → map → verify → report</td>
+          <td class="yes">Yes</td>
+          <td>per-tenant isolated AWS VPC · Coderi's own model</td>
+        </tr>
+        <tr>
+          <td>Control plane</td>
+          <td>dashboard, auth, billing, tenant provisioning</td>
+          <td class="no">No (de-id only)</td>
+          <td>shared multi-tenant cloud SaaS</td>
+        </tr>
+        <tr>
+          <td>Connectors</td>
+          <td>EHR (FHIR R4) in, coded claim out</td>
+          <td class="yes">Yes (transit)</td>
+          <td>per-tenant</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="planes-note">
+      Orchestrated in <strong>LangGraph</strong> with a real <code>interrupt()</code> human gate, durable
+      across processes. Single-tenant cloud VPC on AWS (account-per-tenant via Organizations + Control
+      Tower); each clinic runs Coderi's own model under a BAA. BYOC into the customer's own AWS account is an enterprise upsell.
+    </p>
+  </section>
+
+  <!-- ========== FLYWHEEL ========== -->
+  <section id="flywheel">
+    <div class="section-label">flywheel.md</div>
+    <h2 class="section-title">the training flywheel</h2>
+    <p class="section-meta">Teacher maps today; every human approval trains the owned student coder tomorrow</p>
+
+    <div class="flywheel">
+      <div class="fly-step">
+        <div class="num">1</div>
+        <h3>Teacher</h3>
+        <p>A capable local LLM (MedGemma 1.5 4B via Ollama) does retrieval-grounded ICD-10 mapping today — no training data required to start.</p>
+      </div>
+      <div class="fly-step">
+        <div class="num">2</div>
+        <h3>Capture</h3>
+        <p>Every human-approved or corrected code becomes a labeled note↔code pair — the proprietary dataset that compounds.</p>
+      </div>
+      <div class="fly-step">
+        <div class="num">3</div>
+        <h3>Student</h3>
+        <p>QLoRA fine-tune a small specialist coder on MIMIC-IV distant supervision + captured pairs → fast, cheap, CPU-servable, fully owned. The teacher then handles only ambiguous cases.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== STACK ========== -->
+  <section id="stack">
+    <div class="section-label">stack.json</div>
+    <h2 class="section-title">tech stack</h2>
+    <p class="section-meta">Local-first, self-hosted, recall-guarded</p>
+
+    <div class="stack-grid">
+      <div class="stack-item"><span class="stack-cat">de-id / ner</span>OpenMed</div>
+      <div class="stack-item"><span class="stack-cat">orchestration</span>LangGraph</div>
+      <div class="stack-item"><span class="stack-cat">model</span>MedGemma 1.5 4B</div>
+      <div class="stack-item"><span class="stack-cat">serving</span>Ollama</div>
+      <div class="stack-item"><span class="stack-cat">codes</span>ICD-10-CM</div>
+      <div class="stack-item"><span class="stack-cat">mental health</span>DSM-5 synonyms</div>
+      <div class="stack-item"><span class="stack-cat">retrieval</span>SQLite + NumPy</div>
+      <div class="stack-item"><span class="stack-cat">training</span>QLoRA</div>
+      <div class="stack-item"><span class="stack-cat">data</span>MIMIC-IV</div>
+      <div class="stack-item"><span class="stack-cat">cloud</span>AWS</div>
+      <div class="stack-item"><span class="stack-cat">integration</span>FHIR R4</div>
+      <div class="stack-item"><span class="stack-cat">dashboard</span>Streamlit</div>
+      <div class="stack-item"><span class="stack-cat">lang</span>Python</div>
+      <div class="stack-item"><span class="stack-cat">env</span>uv</div>
+    </div>
+  </section>
+
+  <!-- ========== STATUS ========== -->
+  <section id="status">
+    <div class="section-label">status.sh</div>
+    <h2 class="section-title">where it stands</h2>
+    <p class="section-meta">M1 POC built and running end-to-end; M2 specialist-coder training underway</p>
+
+    <div class="status-block">
+      <p class="status-line">
+        <span class="a">$</span> coderi status<br>
+        <span class="done">[✓]</span> M1 — stages 1→3 pipeline runs end-to-end (dashboard · CLI · LangGraph durable path)<br>
+        <span class="done">[✓]</span> retrieval over full free ICD-10-CM + DSM-5 synonym layer, recall-guarded<br>
+        <span class="done">[✓]</span> consolidated coding report (.md / .json) + human-in-the-loop gate<br>
+        <span class="wip">[~]</span> M2 — MIMIC-IV distant-supervision dataset → QLoRA student coder<br>
+        <span class="done">[ ]</span> M3 — single-tenant AWS infra · per-tenant VPC deployment
+      </p>
+      <div class="badges">
+        <span class="badge on">M1 · built</span>
+        <span class="badge on">M2 · in progress</span>
+        <span class="badge">M3 · planned</span>
+        <span class="badge">self-hosted</span>
+        <span class="badge">HIPAA-aware</span>
+      </div>
+      <div class="cta-links">
+        <a href="https://github.com/baderale/coderi" class="cta-link primary" target="_blank" rel="noopener">view repo</a>
+        <a href="https://github.com/baderale" class="cta-link" target="_blank" rel="noopener">github</a>
+        <a href="mailto:bader53.ale@gmail.com" class="cta-link">contact</a>
+      </div>
+    </div>
+
+    <p class="compliance">
+      <strong>Compliance note:</strong> "HIPAA-aware" ≠ certified. Signing a BAA is the start, not
+      the finish — encryption, network isolation, access control, audit logging, and human review are
+      where compliance actually happens. Nothing here is legal advice.
+    </p>
+  </section>
+
+</div>
+
+<footer>
+  <div class="container">
+    <p>
+      <span class="accent">©</span> 2026 Coderi &nbsp;//&nbsp;
+      a <a href="https://baderale.github.io" target="_blank" rel="noopener">bader_ale</a> build
+      &nbsp;//&nbsp; <span class="accent">medical text → ICD-10</span>
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
