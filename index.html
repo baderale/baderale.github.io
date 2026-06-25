@@ -314,7 +314,10 @@
     border: 1px solid var(--border-bright);
     color: var(--text-dim);
     border-radius: 2px;
+    text-decoration: none;
   }
+  a.skill-tag { transition: color 0.2s, border-color 0.2s; }
+  a.skill-tag:hover { color: var(--accent); border-color: var(--accent); }
 
   /* ========== EXPERIENCE / TIMELINE ========== */
   .timeline {
@@ -480,6 +483,7 @@
       <a href="#about">about</a>
       <a href="#skills">skills</a>
       <a href="#stack">stack</a>
+      <a href="#projects">projects</a>
       <a href="#experience">experience</a>
       <a href="#contact">contact</a>
     </div>
@@ -714,6 +718,49 @@
         <div class="timeline-desc">
           Graduate and undergraduate training spanning engineering, management, and nursing —
           the unusual mix behind a builder who understands both systems and clinical care.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== PROJECTS ========== -->
+  <section id="projects">
+    <div class="section-label">projects.sh</div>
+    <h2 class="section-title">things I've built</h2>
+    <p class="section-meta">Selected open-source work — quant, agents, and applied AI</p>
+
+    <div class="skills-grid">
+      <div class="skill-card" data-num="01">
+        <div class="skill-icon">◈</div>
+        <h3>quant-wheel</h3>
+        <p>Quant + agentic engine for the Wheel options strategy on a $1k account: Markov regime, Monte-Carlo &amp; Black-Scholes, a 5-persona LLM investor council (local Ollama or any cloud model), a LangGraph weekly agent, and a swappable Streamlit/TUI dashboard — backtested with rule-ablation.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">Python</span>
+          <span class="skill-tag">LangGraph</span>
+          <span class="skill-tag">Monte-Carlo</span>
+          <a class="skill-tag" href="https://github.com/baderale/quant-wheel" target="_blank" rel="noopener">View &#8599;</a>
+        </div>
+      </div>
+      <div class="skill-card" data-num="02">
+        <div class="skill-icon">⬡</div>
+        <h3>Taxentia-AI</h3>
+        <p>An AI-powered tax-research assistant built for CPAs, tax attorneys, and Enrolled Agents — grounded, source-cited answers to complex tax questions.</p>
+        <div class="skill-tags">
+          <span class="skill-tag">Python</span>
+          <span class="skill-tag">RAG</span>
+          <span class="skill-tag">LLM</span>
+          <a class="skill-tag" href="https://github.com/baderale/Taxentia-AI" target="_blank" rel="noopener">View &#8599;</a>
+        </div>
+      </div>
+      <div class="skill-card" data-num="03">
+        <div class="skill-icon">▣</div>
+        <h3>Axon-Health</h3>
+        <p>An AI-native medical-tech platform: federated subsidiaries behind two-tier HIPAA + compliance gatekeepers on a NATS message bus (prototype).</p>
+        <div class="skill-tags">
+          <span class="skill-tag">Python</span>
+          <span class="skill-tag">NATS</span>
+          <span class="skill-tag">HIPAA</span>
+          <a class="skill-tag" href="https://github.com/baderale/Axon-Health" target="_blank" rel="noopener">View &#8599;</a>
         </div>
       </div>
     </div>
